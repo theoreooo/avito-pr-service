@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: avito-pr-postgres
+    environment:
+      POSTGRES_USER: pr_user
+      POSTGRES_PASSWORD: pr_password
+      POSTGRES_DB: pr
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pr_user -d pr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - avito-pr-network
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    container_name: avito-pr-migrate
+    command:
+      - "-path=/migrations"
+      - "-database=postgres://pr_user:pr_password@postgres:5432/pr?sslmode=disable"
+      - "up"
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - avito-pr-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avito-pr-app
+    environment:
+      CONFIG_PATH: /app/config/config.yaml
+      DATABASE_URL: postgres://pr_user:pr_password@postgres:5432/pr?sslmode=disable
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/app/config:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - avito-pr-network
+
+volumes:
+  postgres_data:
+
+networks:
+  avito-pr-network:
+    driver: bridge
