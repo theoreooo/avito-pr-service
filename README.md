@@ -40,9 +40,6 @@ make clean     # Очистить сгенерированные файлы
 ### Statistics
 - `GET /statistics` - Получить статистику по PR и ревьюверам
 
-
-```
-
 ## Архитектура
 handler/          # HTTP-слой (chi + oapi-codegen)
 service/          # бизнес-логика (PRService, TeamService, UserService)
@@ -56,5 +53,3 @@ PostgreSQL
 
 ### Вместо того чтобы выносить сложную логику выбора кандидатов и управления транзакциями на cервисный уровень, z инкапсулировал её в PRRepository.
 Все сложные операции (CreatePR, ReassignReviewer, MergePR) выполняются в рамках одной PostgreSQL транзакции.
-
-```
